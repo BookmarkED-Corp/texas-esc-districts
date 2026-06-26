@@ -24,7 +24,7 @@ All 20 regional ESCs in Texas (Regions 1–20):
 
 ### School Districts
 
-All ~8,000 public school districts in Texas:
+All ~1,200 public school districts in Texas:
 - Official district name and TEA code (e.g., "031-901")
 - ESC region assignment
 - County location
