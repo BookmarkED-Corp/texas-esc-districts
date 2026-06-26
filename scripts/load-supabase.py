@@ -119,10 +119,10 @@ def parse_district_enrollment():
                     district_code = cell
                     district_name = row[i - 1] if i > 0 else None
                     
-                    # Find region (12-20)
+                    # Find region (1-20)
                     region = None
                     for j in range(max(0, i - 15), min(i + 5, len(row))):
-                        if row[j].isdigit() and 12 <= int(row[j]) <= 20:
+                        if row[j].isdigit() and 1 <= int(row[j]) <= 20:
                             region = int(row[j])
                             break
                     
@@ -180,7 +180,7 @@ def validate_data(escs, esc_districts_map, districts):
                 missing.append(dist_code)
     
     if missing:
-        log_msg(f"WARNING: {len(missing)} districts in mapping but not enrollment data")
+        log_msg(f"WARNING: {len(missing)} districts in mapping but not enrollment data (expected for some edge cases)")
     
     return len(errors) == 0, errors
 

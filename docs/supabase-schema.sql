@@ -33,13 +33,18 @@ CREATE INDEX IF NOT EXISTS idx_districts_name ON districts USING GIN (to_tsvecto
 CREATE INDEX IF NOT EXISTS idx_districts_county ON districts(county_code);
 CREATE INDEX IF NOT EXISTS idx_districts_enrollment ON districts(enrollment_oct2025 DESC NULLS LAST);
 
--- Row-level security (optional: allow read access to all authenticated users)
+-- Row-level security (read-write for owner, read-only for authenticated users)
 ALTER TABLE escs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE districts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow read access to escs" ON escs FOR SELECT USING (true);
-CREATE POLICY "Allow read access to districts" ON districts FOR SELECT USING (true);
+CREATE POLICY "Allow full access to owner" ON escs USING (auth.uid() = 'steve_user_id') WITH CHECK (auth.uid() = 'steve_user_id');
+CREATE POLICY "Allow read-only access to authenticated" ON escs FOR SELECT USING (true);
+
+CREATE POLICY "Allow full access to owner" ON districts USING (auth.uid() = 'steve_user_id') WITH CHECK (auth.uid() = 'steve_user_id');
+CREATE POLICY "Allow read-only access to authenticated" ON districts FOR SELECT USING (true);
 
 -- Grant permissions
-GRANT SELECT ON escs TO authenticated;
-GRANT SELECT ON districts TO authenticated;
+GRANT ALL ON escs TO authenticated;
+GRANT ALL ON districts TO authenticated;
+GRANT SELECT ON escs TO anon;
+GRANT SELECT ON districts TO anon;

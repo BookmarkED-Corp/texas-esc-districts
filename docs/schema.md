@@ -22,7 +22,7 @@ Canonical Education Service Center (Region) metadata
 
 | Column | Type | Description |
 |--------|------|-------------|
-| region_number | INTEGER NOT NULL PRIMARY KEY | ESC number (12–20). Also called "Region X" by TEA. |
+| region_number | INTEGER NOT NULL PRIMARY KEY | ESC number (1–20). Also called "Region X" by TEA. |
 | esc_code | VARCHAR(20) NOT NULL | TEA ESC identifier code (e.g., "108-950") |
 | esc_name | VARCHAR(255) NOT NULL | Full ESC name (e.g., "REG 1 EDUCATION SERVICE CENTER") |
 | created_at | TIMESTAMP | When this record was created |
@@ -60,7 +60,7 @@ All public school districts in Texas, linked to ESCs
 ## Data Validation Rules
 
 1. **No null mandatory fields:** `district_id`, `district_name`, `region_number` must always be populated.
-2. **Valid region:** `region_number` must be in range [12, 20].
+2. **Valid region:** `region_number` must be in range [1, 20].
 3. **Enrollment must be numeric:** If present, must be ≥ 0.
 4. **District mapping must be complete:** Any district appearing in the mapping file must also appear in the enrollment file (or be flagged).
 5. **Checksum tracking:** Each load records a checksum of the raw TSV so we can detect silent data corruption.
