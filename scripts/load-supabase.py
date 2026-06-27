@@ -101,7 +101,7 @@ def parse_esc_districts():
 
 
 def parse_district_enrollment():
-    """Parse district enrollment data."""
+    """Parse district enrollment data from AskTED export format."""
     enroll_file = find_latest_file("district-enrollment*.tsv")
     log_msg(f"Reading enrollment data from: {enroll_file}")
 
@@ -109,55 +109,65 @@ def parse_district_enrollment():
 
     with open(enroll_file, "r", encoding="utf-8") as f:
         reader = csv.reader(f, delimiter="\t")
+        header_row = next(reader, None)  # Skip header
+        
         for row in reader:
-            if len(row) < 4:
+            if len(row) < 10:
                 continue
-
-            # Look for district code (NNN-NNN pattern)
-            for i, cell in enumerate(row):
-                if re.match(r"^\d{3}-\d{3}$", cell):
-                    district_code = cell
-                    district_name = row[i - 1] if i > 0 else None
-                    
-                    # Find region (1-20)
-                    region = None
-                    for j in range(max(0, i - 15), min(i + 5, len(row))):
-                        if row[j].isdigit() and 1 <= int(row[j]) <= 20:
-                            region = int(row[j])
-                            break
-                    
-                    # Find enrollment (digit after district type)
-                    enroll = None
-                    dtype = None
-                    for j in range(i + 1, min(i + 15, len(row))):
-                        if row[j] in ["INDEPENDENT", "CHARTER"]:
-                            dtype = row[j]
-                            if j + 1 < len(row):
-                                val = row[j + 1].replace(",", "").replace('"', "").strip()
-                                if val.isdigit():
-                                    enroll = int(val)
-                            break
-                    
-                    # Find county
-                    county = None
-                    county_code = None
-                    for j in range(max(0, i - 20), i):
-                        if re.match(r"^\(\d{3}\)$", row[j]):
-                            county_code = row[j].strip("()")
-                            if j > 0:
-                                county = row[j - 1]
-                            break
-                    
-                    if region and district_code not in districts:
-                        districts[district_code] = {
-                            "name": district_name,
-                            "region": region,
-                            "county": county,
-                            "county_code": county_code,
-                            "type": dtype,
-                            "enrollment": enroll,
-                        }
-                    break
+            
+            # AskTED format: each row has:
+            # [0]=source, [1]=source, [2]=title, [3]="County", [4]=COUNTY (NNN),
+            # [5]="Region", [6]=region_num, [7]="District", [8]=DISTRICT NAME (NNN-NNN),
+            # [9]="District Type", [10]=type_label, [11]=type_value, [12]=enrollment_label, [13]=enrollment_value, ...
+            
+            try:
+                # Extract county code from field [4] format: "COUNTY NAME (NNN)"
+                county_field = row[4] if len(row) > 4 else ""
+                county_code = None
+                county_name = None
+                county_match = re.search(r'\((\d{3})\)$', county_field)
+                if county_match:
+                    county_code = county_match.group(1)
+                    county_name = county_field[:county_match.start()].strip()
+                
+                # Extract region from field [6]
+                region = None
+                if len(row) > 6 and row[6].isdigit():
+                    region = int(row[6])
+                
+                # Extract district code from field [8] format: "NAME (NNN-NNN)"
+                district_field = row[8] if len(row) > 8 else ""
+                district_code = None
+                district_name = None
+                district_match = re.search(r'\((\d{3}-\d{3})\)$', district_field)
+                if district_match:
+                    district_code = district_match.group(1)
+                    district_name = district_field[:district_match.start()].strip()
+                
+                # Extract district type and enrollment
+                # Format: [9]="District Type", [10]="Enrollment as of Oct 2025", [11]=TYPE, [12]=ENROLLMENT
+                dtype = None
+                enroll = None
+                if len(row) > 11:
+                    dtype = row[11] if row[11] in ["INDEPENDENT", "CHARTER"] else None
+                
+                # Enrollment is at [12] in AskTED format
+                if len(row) > 12 and dtype:
+                    val = row[12].replace(",", "").replace('"', "").strip()
+                    if val.isdigit():
+                        enroll = int(val)
+                
+                if region and district_code and district_code not in districts:
+                    districts[district_code] = {
+                        "name": district_name,
+                        "region": region,
+                        "county": county_name,
+                        "county_code": county_code,
+                        "type": dtype,
+                        "enrollment": enroll,
+                    }
+            except (IndexError, ValueError):
+                continue
 
     log_msg(f"Parsed {len(districts)} districts")
     return districts
